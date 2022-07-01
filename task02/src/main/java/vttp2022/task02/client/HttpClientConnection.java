@@ -31,12 +31,24 @@ public class HttpClientConnection {
 	public void start() throws UnknownHostException, IOException{
 		try{
 			System.out.printf("Connecting to %s on port %d...\n", host, port);
-			sock = new Socket(host, port);
+			this.sock = new Socket(host, port);
 			System.out.println("Connected");
-			initializeStreams(sock);
+
+			System.out.println("Initialising Streams A");
+		  os = sock.getOutputStream();
+
+      System.out.println("Initialising Streams B");
+      is = sock.getInputStream();
+
+      System.out.println("Initialising Streams C");
+      oos = new ObjectOutputStream(os);
+
+      System.out.println("Initialising Streams D");
+		  ois = new ObjectInputStream(is);
+
       sock.setSoTimeout(clientTimeOut15s);
 
-			String request = read();
+			String request = ois.readUTF();
 
       // Perform some operation on the request
 			List<String> requestTerms = parseRequestResponse(request);
@@ -47,17 +59,18 @@ public class HttpClientConnection {
       String email = requestTerms.get(2);
       String averageResult = requestTerms.get(3);
 
-      write(requestId);
-      write(name);
-      write(email);
-      write(averageResult);
+      oos.writeUTF(requestId);
+      oos.writeUTF(name);
+      oos.writeUTF(email);
+      oos.writeFloat(Float.parseFloat(averageResult));
 
-      String response = read();
+      oos.flush();
+      String response = ois.readUTF();
 
       if (Boolean.parseBoolean(response)){
         System.out.println("SUCCESS");
       } else{
-        response = read();
+        response = ois.readUTF();
         System.out.println("FAILED: " + response);
       }
 			close();
@@ -87,29 +100,7 @@ public class HttpClientConnection {
     return result;
   }
 
-	private void initializeStreams(Socket sock) throws IOException {
-    System.out.println("Initialising Streams A");
-		os = sock.getOutputStream();
-    System.out.println("Initialising Streams B");
-    is = sock.getInputStream();
-
-    System.out.println("Initialising Streams C");
-    oos = new ObjectOutputStream(os);
-    System.out.println("Initialising Streams D");
-		ois = new ObjectInputStream(is);
-    System.out.println("Initialising Streams E");
-	}
-
-	private String read() throws IOException {
-		return ois.readUTF();
-	}
-
-	private void write(String out) throws IOException {
-		oos.writeUTF(out);
-	}
-
 	private void close() throws IOException {
-    oos.flush();
 		is.close();
 		os.close();
 	}
